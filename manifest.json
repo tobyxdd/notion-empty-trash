@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "Notion Empty Trash",
+    "description": "Empty trash button for Notion",
+    "version": "1.0",
+    "content_scripts": [
+        {
+            "js": [
+                "script.js"
+            ],
+            "matches": [
+                "https://www.notion.so/*"
+            ]
+        }
+    ],
+    "icons": {
+        "128": "128.png"
+    }
+}
