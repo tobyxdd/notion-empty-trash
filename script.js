@@ -16,13 +16,29 @@ function emptyTrash() {
     (async () => {
         const spaceId = await getSpaceId();
         blockIds = await getBlockIds(spaceId);
-        count = 0;
-        for (const blockId of blockIds) {
-            const blockIdEscaped = '\"' + blockId + '\"';
-            await fetch("https://www.notion.so/api/v3/deleteBlocks", { "credentials": "include", "headers": { "accept": "*/*", "cache-control": "no-cache", "content-type": "application/json", "pragma": "no-cache", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin" }, "referrerPolicy": "same-origin", "body": "{\"blockIds\":[" + blockIdEscaped + "],\"permanentlyDelete\":true}", "method": "POST", "mode": "cors" });
-            count++;
+
+        if (blockIds.length == 0) {
+            alert("Trash is empty!");
+            return;
         }
-        alert(count + " blocks deleted");
+
+        const dg = confirm("Are you sure you want to delete " + blockIds.length + " blocks?");
+        if (!dg) {
+            return;
+        }
+
+        body = {
+            "blockIds": blockIds,
+            "permanentlyDelete": true
+        };
+        const resp = await fetch("https://www.notion.so/api/v3/deleteBlocks", { "credentials": "include", "headers": { "accept": "*/*", "cache-control": "no-cache", "content-type": "application/json", "pragma": "no-cache", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin" }, "referrerPolicy": "same-origin", "body": JSON.stringify(body), "method": "POST", "mode": "cors" });
+
+        if (resp.status == 200) {
+            alert("Trash emptied!");
+        } else {
+            alert("Error emptying trash, see console for details.");
+            console.log(resp);
+        }
     })();
 }
 
@@ -30,6 +46,7 @@ function injectEmptyTrashButton(trashMenu) {
     const hideScrollbar = trashMenu.querySelector('.hide-scrollbar');
     const button = document.createElement('button');
     button.innerText = 'Empty Trash';
+    button.style = 'flex-shrink: 0;';
     button.onclick = emptyTrash;
     hideScrollbar.appendChild(button);
 }
