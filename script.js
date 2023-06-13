@@ -7,7 +7,31 @@ function emptyTrash() {
     }
 
     async function getBlockIds(spaceId) {
-        resp = await fetch("https://www.notion.so/api/v3/search", { "credentials": "include", "headers": { "accept": "*/*", "cache-control": "no-cache", "content-type": "application/json", "pragma": "no-cache", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin" }, "referrerPolicy": "same-origin", "body": "{\"type\":\"BlocksInSpace\",\"query\":\"\",\"filters\":{\"isDeletedOnly\":true,\"excludeTemplates\":false,\"isNavigableOnly\":true,\"requireEditPermissions\":false,\"ancestors\":[],\"createdBy\":[],\"editedBy\":[],\"lastEditedTime\":{},\"createdTime\":{}},\"sort\":\"Relevance\",\"limit\":1000,\"spaceId\":\"" + spaceId + "\",\"source\":\"trash\"}", "method": "POST", "mode": "cors" });
+        body = {
+            "type": "BlocksInSpace",
+            "query": "",
+            "filters": {
+                "isDeletedOnly": true,
+                "excludeTemplates": false,
+                "navigableBlockContentOnly": true,
+                "requireEditPermissions": false,
+                "includePublicPagesWithoutExplicitAccess": false,
+                "ancestors": [],
+                "createdBy": [],
+                "editedBy": [],
+                "lastEditedTime": {},
+                "createdTime": {},
+                "inTeams": []
+            },
+            "sort": {
+                "field": "lastEdited",
+                "direction": "desc"
+            },
+            "limit": 1000,
+            "spaceId": spaceId,
+            "source": "trash"
+        };
+        resp = await fetch("https://www.notion.so/api/v3/search", { "credentials": "include", "headers": { "accept": "*/*", "cache-control": "no-cache", "content-type": "application/json", "pragma": "no-cache", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin" }, "referrerPolicy": "same-origin", "body": JSON.stringify(body), "method": "POST", "mode": "cors" });
         json = await resp.json();
         blockIds = json.results.map((el) => { return el.id });
         return blockIds;
