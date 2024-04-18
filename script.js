@@ -9,7 +9,7 @@ function emptyTrash() {
     return uuid;
   }
 
-  function getPageId() {
+  function getCurrentPageId() {
     const regex = /(?:\/|-)([a-f0-9]{32})/i;
     const match = window.location.href.match(regex);
     if (match && match[1]) {
@@ -19,23 +19,30 @@ function emptyTrash() {
     }
   }
 
-  async function getSpaceId() {
-    id = getPageId();
+  async function getCurrentSpaceInfo() {
+    id = getCurrentPageId();
     if (!id) {
       alert("Error: Not on a Notion page?");
       return;
     }
     // Get the workspace this page belongs to
-    resp = await fetchNotion("https://www.notion.so/api/v3/getRecordValues", {
-      requests: [
-        {
-          id: id,
-          table: "block",
-        },
-      ],
-    });
+    resp = await fetchNotion(
+      "https://www.notion.so/api/v3/getRecordValues",
+      null,
+      {
+        requests: [
+          {
+            id: id,
+            table: "block",
+          },
+        ],
+      }
+    );
     json = await resp.json();
-    return json?.results?.[0]?.value?.space_id;
+    return {
+      space_id: json?.results?.[0]?.value?.space_id,
+      user_id: json?.results?.[0]?.value?.permissions?.[0]?.user_id,
+    };
   }
 
   async function getBlockIds(spaceId) {
@@ -63,7 +70,7 @@ function emptyTrash() {
       spaceId: spaceId,
       source: "trash",
     };
-    resp = await fetchNotion("https://www.notion.so/api/v3/search", body);
+    resp = await fetchNotion("https://www.notion.so/api/v3/search", null, body);
     json = await resp.json();
     blockIds = json.results.map((el) => {
       return el.id;
@@ -72,8 +79,8 @@ function emptyTrash() {
   }
 
   (async () => {
-    const spaceId = await getSpaceId();
-    blockIds = await getBlockIds(spaceId);
+    const spaceInfo = await getCurrentSpaceInfo();
+    blockIds = await getBlockIds(spaceInfo.space_id);
 
     if (blockIds.length == 0) {
       alert("Trash is empty!");
@@ -84,16 +91,25 @@ function emptyTrash() {
       "Are you sure you want to delete " +
         blockIds.length +
         " blocks from workspace " +
-        spaceId +
+        spaceInfo.space_id +
         "?"
     );
     if (!dg) {
       return;
     }
 
-    const resp = await fetchNotion(
+    resp = await fetchNotion(
       "https://www.notion.so/api/v3/deleteBlocks",
-      { blockIds: blockIds, permanentlyDelete: true }
+      spaceInfo,
+      {
+        blocks: blockIds.map((id) => {
+          return {
+            id: id,
+            spaceId: spaceInfo.space_id,
+          };
+        }),
+        permanentlyDelete: true,
+      }
     );
 
     if (resp.status == 200) {
@@ -105,8 +121,8 @@ function emptyTrash() {
   })();
 }
 
-async function fetchNotion(url, body) {
-  const response = await fetch(url, {
+async function fetchNotion(url, spaceInfo, body) {
+  req = {
     credentials: "include",
     headers: {
       accept: "*/*",
@@ -119,7 +135,12 @@ async function fetchNotion(url, body) {
     body: JSON.stringify(body),
     method: "POST",
     mode: "cors",
-  });
+  };
+  if (spaceInfo) {
+    req.headers["x-notion-active-user-header"] = spaceInfo.user_id;
+    req.headers["x-notion-space-id"] = spaceInfo.space_id;
+  }
+  const response = await fetch(url, req);
   return response;
 }
 
