@@ -145,12 +145,15 @@ async function fetchNotion(url, spaceInfo, body) {
 }
 
 function injectEmptyTrashButton(trashMenu) {
-  const hideScrollbar = trashMenu.querySelector(".hide-scrollbar");
   const button = document.createElement("button");
   button.innerText = "Empty Trash";
-  button.style = "flex-shrink: 0;";
   button.onclick = emptyTrash;
-  hideScrollbar.appendChild(button);
+  if (trashMenu.children.length > 0) {
+    const secondChild = trashMenu.children[1] || null;
+    trashMenu.insertBefore(button, secondChild);
+  } else {
+    trashMenu.appendChild(button);
+  }
 }
 
 const observer = new MutationObserver((mutations) => {
@@ -158,7 +161,9 @@ const observer = new MutationObserver((mutations) => {
     if (mutation.type === "childList") {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
-          const trashMenu = node.querySelector(".notion-sidebar-trash-menu");
+          const trashMenu = node.classList.contains("notion-sidebar-trash-menu")
+            ? node
+            : node.querySelector(".notion-sidebar-trash-menu");
           if (trashMenu) {
             injectEmptyTrashButton(trashMenu);
           }
